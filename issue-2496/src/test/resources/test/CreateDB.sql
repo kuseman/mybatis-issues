@@ -20,6 +20,8 @@ as
 	select id, name
 	from users
 	where id = @pUser_id
+
+	return(0)
 ;
 
 create or alter procedure queryUsersWithDebugSelect
@@ -27,6 +29,9 @@ create or alter procedure queryUsersWithDebugSelect
 	@pUser_id AS INT = -1
 )
 as
+	-- Set this has no effect when selecting
+	-- that is however a workaround when dealing with JDBC update-calls
+	-- set nocount on
 
 	-- Debug some stuff in a procedure temporarily (unknowingly that it's used in mybatis)
 	-- to investigate some issue by running the procedure inside Management studio etc.
@@ -37,4 +42,6 @@ as
 	select id, name
 	from users
 	where id = @pUser_id
+
+	return(0)
 ;

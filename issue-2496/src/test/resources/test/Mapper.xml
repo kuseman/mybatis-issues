@@ -15,12 +15,14 @@
 
   <select id="queryUsers" statementType="CALLABLE" resultType="test.User">
   {
+    #{returnedValue, mode=OUT, jdbcType=INTEGER, javaType=java.lang.Integer} =
     CALL queryUsers (@pUser_id = #{id})
   }
   </select>
 
   <select id="queryUsersWithDebugSelect" statementType="CALLABLE" resultType="test.User">
   {
+    #{returnedValue, mode=OUT, jdbcType=INTEGER, javaType=java.lang.Integer} =
     CALL queryUsersWithDebugSelect (@pUser_id = #{id})
   }
   </select>

@@ -1,12 +1,12 @@
 package test;
 
-import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 import java.io.Reader;
 import java.sql.Connection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.jdbc.ScriptRunner;
@@ -65,31 +65,48 @@ public class SimpleTest {
   @Test
   public void testQueryUsers() {
       try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
-          List<User> users = sqlSession.selectList("queryUsers", singletonMap("id", 2));
+          Map<String, Object> map = new HashMap<>();
+          map.put("returnedValue", -1);
+          map.put("id", 2);
+
+          List<User> users = sqlSession.selectList("queryUsers", map);
           assertEquals((Integer) 2, users.get(0).getId());
+          assertEquals(0, map.get("returnedValue"));
       }
   }
 
   /**
-   * Here we query a procedure that returns too many result sets due to some
-   * unexpected select inside a stored procedure.
+   * JTDS
+   * ----
+   * If this test is executed with JTDS driver we get an exception
+   * due to error:
+   *   Error attempting to get column #1 from callable statement.  Cause: java.sql.SQLException: Output parameters have not yet been processed. Call getMoreResults().
    *
-   * I think this should fail.
+   * which is an effect of that JTDS somehow detects that we have more resultsets coming before 
+   * we extract the returnValue the return statement
    *
-   * In org.apache.ibatis.executor.resultset.DefaultResultSetHandler.handleResultSets(Statement)
+   * This is a GOOD thing because then this call crashes and stops the "faulty" resultset from being
+   * used upstream in mybatis that would cause tremendous damage because the system would treat the call
+   * as successful
    *
-   * at line 200
-   *
-   * we have 'rsw != null' which indicates that we did get back a result set even when
-   * resultMapCount > resultSetCount was full filled and I think an exception should be thrown
-   * when that happens.
+   * MSSQL JDBC
+   * ----------
+   * If this is executed with MSSQL JDBC however it's silently executes which is a BAD thing for us
+   * because of reasons above.
+   * We can see this because the unit test fails when asserting that we got the correct user back
    *
    */
   @Test
   public void testQueryUsers_with_too_many_resultsets_back() {
       try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
-          sqlSession.selectList("queryUsersWithDebugSelect", singletonMap("id", 2));
-          fail("Should fail becuase we have 2 resultsets returned but mapping only has one specified" );
+          Map<String, Object> map = new HashMap<>();
+          map.put("returnedValue", -1);
+          map.put("id", 2);
+
+          List<User> users = sqlSession.selectList("queryUsersWithDebugSelect", map);
+
+          assertEquals((Integer) 2, users.get(0).getId());
+          assertEquals(0, map.get("returnedValue"));
       }
   }
 }
